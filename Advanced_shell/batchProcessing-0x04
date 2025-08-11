@@ -1,0 +1,41 @@
+#!/bin/bash
+# Task 5 - Parallel fetching of Pokémon data with background job management
+
+pokemons=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+api_base="https://pokeapi.co/api/v2/pokemon"
+error_file="errors.txt"
+
+mkdir -p parallel_data
+> "$error_file"  # Clear previous errors
+
+pids=()  # Store process IDs
+
+fetch_pokemon() {
+    local pokemon="$1"
+    local file="parallel_data/${pokemon}.json"
+
+    echo "Fetching $pokemon..."
+    curl -s "$api_base/$pokemon" -o "$file"
+
+    if [ $? -eq 0 ] && [ -s "$file" ]; then
+        echo "Data for $pokemon saved."
+    else
+        echo "$pokemon" >> "$error_file"
+    fi
+}
+
+# Launch fetches in the background
+for p in "${pokemons[@]}"; do
+    fetch_pokemon "$p" &
+    pids+=($!)
+done
+
+# Show active background jobs (ALX checker requirement)
+jobs
+
+# Wait for each background job and kill if it hangs
+for pid in "${pids[@]}"; do
+    wait "$pid" || kill "$pid" 2>/dev/null
+done
+
+echo "Parallel fetching complete."

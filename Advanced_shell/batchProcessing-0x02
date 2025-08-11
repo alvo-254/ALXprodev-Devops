@@ -1,0 +1,37 @@
+#!/bin/bash
+# Task 4 - Error handling and retry logic for batch Pokémon fetching
+
+pokemons=("pikachu" "mewtwo" "charizard")
+api_base="https://pokeapi.co/api/v2/pokemon"
+error_file="errors.txt"
+
+# Retry configuration
+max_retries=3
+retry_delay=2
+
+> "$error_file"  # Clear previous errors
+
+for pokemon in "${pokemons[@]}"; do
+    attempt=1
+    success=false
+    output_file="${pokemon}.json"
+
+    while [ $attempt -le $max_retries ]; do
+        echo "Fetching data for $pokemon (Attempt $attempt)..."
+        curl -s "$api_base/$pokemon" -o "$output_file"
+
+        if [ $? -eq 0 ] && [ -s "$output_file" ]; then
+            echo "Data for $pokemon fetched successfully."
+            success=true
+            break
+        else
+            echo "Failed to fetch $pokemon on attempt $attempt."
+            attempt=$((attempt+1))
+            sleep $retry_delay
+        fi
+    done
+
+    if [ "$success" = false ]; then
+        echo "$pokemon" >> "$error_file"
+    fi
+done
