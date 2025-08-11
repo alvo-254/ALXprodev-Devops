@@ -1,28 +1,20 @@
 #!/bin/bash
-# Task 4 - Retry logic for fetching a Pokémon's data
+# Task 2 - Fetch multiple Pokémon data and save to separate JSON files
 
-pokemon="snorlax"
-api_url="https://pokeapi.co/api/v2/pokemon/$pokemon"
-output_file="${pokemon}.json"
+pokemons=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+api_base="https://pokeapi.co/api/v2/pokemon"
+output_dir="pokemon_data"
 error_file="errors.txt"
 
-max_retries=5
-retry_delay=2
-attempt=1
+mkdir -p "$output_dir"
 
-while [ $attempt -le $max_retries ]; do
-    echo "Attempt $attempt: Fetching data for $pokemon..."
-    curl -s "$api_url" -o "$output_file"
-
-    if [ $? -eq 0 ] && [ -s "$output_file" ]; then
-        echo "Data for $pokemon fetched successfully ✅"
-        exit 0
+for pokemon in "${pokemons[@]}"; do
+    echo "Fetching data for $pokemon..."
+    curl -s "$api_base/$pokemon" -o "$output_dir/${pokemon}.json"
+    if [ $? -eq 0 ] && [ -s "$output_dir/${pokemon}.json" ]; then
+        echo "Saved data to $output_dir/${pokemon}.json ✅"
     else
-        echo "Failed to fetch $pokemon on attempt $attempt" >> "$error_file"
-        attempt=$((attempt+1))
-        sleep $retry_delay
+        echo "Failed to fetch $pokemon" >> "$error_file"
     fi
+    sleep 1  # prevent hitting rate limits
 done
-
-echo "Exceeded maximum retries ($max_retries) for $pokemon" >> "$error_file"
-exit 1
